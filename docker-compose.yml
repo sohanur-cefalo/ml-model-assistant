@@ -1,0 +1,12 @@
+services:
+  ml-pipeline-app:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - "./uploads:/app/uploads"
+      - "./output:/app/output"
+    environment:
+      FLASK_APP: "app.py"
+      FLASK_RUN_HOST: "0.0.0.0"
+    restart: unless-stopped
