@@ -9,3 +9,5 @@ output/
 uploads/
 data/
 .DS_Store
+*.csv
+*.ipynb

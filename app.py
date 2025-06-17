@@ -58,33 +58,21 @@ def run_pipeline():
         flash(f"❌ Label column '{label}' not found.")
         return redirect(url_for('index'))
 
-    output = pipeline(filepath, label=label, type=pipeline_type, threshold=threshold)
+    results, processed_df, max_accuracy = pipeline(filepath, label=label, type=pipeline_type, threshold=threshold)
 
-    if isinstance(output, tuple):
-        results, processed_df = output
-        cleaned_file = os.path.join(app.config['UPLOAD_FOLDER'], "processed_" + file)
-        processed_df.to_csv(cleaned_file, index=False)
-        flash(f"🚀 Accuracy < {threshold*100}%. Saved cleaned data.")
-        return send_file(cleaned_file, as_attachment=True)
+    base_name = os.path.splitext(os.path.basename(file))[0]  # drops directory and .csv
+    cleaned_file_name = f"processed_{base_name}.csv"
+
+    # processed_df.to_csv(cleaned_file_name, index=False)
+    top10 = processed_df.head(10).to_html(classes='table table-bordered table-striped', index=False)
+
+    if max_accuracy < threshold:
+        flash(f"❕ Model accuracy {max_accuracy*100:.2f}% is below {threshold*100}%. Download cleaned data for future improvement.")
     else:
-        results = output
-        max_score = 0.0  # to track max Accuracy or R2
+        flash(f"🎉 Model accuracy {max_accuracy*100:.2f}% meets or exceeds {threshold*100}%!")
 
-        for k, res in results.items():
-            if k == 'type':
-                continue
-            if results['type'] == 'classification':
-                score = res['accuracy']
-            else:
-                score = res['R2']
+    return render_template("result.html", cleaned_file=cleaned_file_name, top10=top10)
 
-            if score > max_score:
-                max_score = score
-
-        print([res for k, res in results.items() if k != 'type'])
-
-        flash(f"🎉 Score {max_score*100:.2f}% meets or exceeds {threshold*100}%.")
-        return redirect(url_for('index'))
 
 
 @app.route("/detect_type", methods=["POST"])
@@ -100,6 +88,17 @@ def detect_type():
 
     return jsonify({"pipeline_type": p_type})
 
+@app.route("/download_file/<filename>")
+def download_file(filename):
+    """Serve the cleaned CSV file for download."""
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    if not os.path.exists(file_path):
+        flash("❕ File not found.")
+        return redirect(url_for('index'))
+        
+    return send_file(file_path, as_attachment=True)
+
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Cleaned File{% endblock %}
+
+{% block content %}
+<h2>Your cleaned CSV is downloaded already.</h2>
+
+<a class="btn btn-primary mb-3" 
+   href="{{ url_for('download_file', filename=cleaned_file) }}">Download cleaned CSV</a>
+
+<a class="btn btn-secondary mb-3" 
+   href="{{ url_for('index') }}">Go back</a>
+
+<h2>Cleaned Data (Top 10 Rows)</h2>
+
+<div class="table-wrapper shadow-md rounded-md bg-gray-100" 
+     style="max-width: 100%; margin: 0 auto; overflow-x: scroll">
+    {{ top10|safe }}
+</div>
+
+{% endblock %}

@@ -3,16 +3,29 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-def drop_unique_columns(df, unique_ratio=0.90):
-    """Drop columns where the number of unique values == total rows or above a certain ratio."""
+def lowercase_and_get_dummies(df):
+    """Convert all categorical values to lower case and apply one-hot encoding."""
+    df = df.copy()
+    for col in df.select_dtypes(['object']).columns:
+        df[col] = df[col].apply(lambda x: x.lower() if isinstance(x, str) else x)
+    # df = pd.get_dummies(df, drop_first=True)  # drops first to avoid multicollinearity
+    return df
+
+def replace_invalid_vals(df, invalid_vals=('?', '??')):
+    """Convert invalid placeholders to NaN."""
+    return df.copy().replace(invalid_vals, pd.NA)
+
+
+def drop_unique_categorical_columns(df, unique_ratio=0.90):
+    """Drop categorical columns with unique ratio above threshold."""
     to_drop = []
-    for col in df.columns:
+    for col in df.select_dtypes(include=['object', 'category']).columns:
         unique_ratio_col = df[col].nunique() / len(df)
         if unique_ratio_col > unique_ratio:
             to_drop.append((col, unique_ratio_col))
     
     if to_drop:
-        print("Dropping the following columns due to high cardinality:")
+        print("Dropping the following categorical columns due to high cardinality:")
         for col, ratio in to_drop:
             print(f"- {col} (unique_ratio = {ratio:.2f})")
     
@@ -47,18 +60,6 @@ def convert_to_datetime_if_possible(df):
             continue
     return df
 
-def convert_datetime_columns_to_epoch(df):
-    """Convert datetime columns to epoch timestamp."""
-    for col in df.select_dtypes(['datetime64[ns]']).columns:
-        df[col] = df[col].apply(lambda x: x.timestamp()) 
-    return df
-
-def convert_to_numeric_if_possible(df):
-    """Convert convertible object columns to numeric."""
-    for col in df.select_dtypes(['object']).columns:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-    return df
-
 def fill_nans_df(df):
     """Fill NaNs in numeric with median and in object with mode."""
     for col in df.columns:
@@ -69,18 +70,44 @@ def fill_nans_df(df):
                 df[col] = df[col].fillna(df[col].mode()[0]) 
     return df
 
+def convert_low_cardinality_to_category(df, max_unique_ratio=0.05):
+    """Convert object columns with a small number of unique values to category."""
+    for col in df.select_dtypes(['object']).columns:
+        if df[col].nunique() / len(df) <= max_unique_ratio:
+            df[col] = df[col].astype('category')
+    return df
+
+
+def remove_outliers(df, column, threshold, method='cap'):
+    if column not in df.columns:
+        raise ValueError(f"Column '{column}' not found in DataFrame")
+
+    if method == 'cap':
+        df[column] = np.where(df[column] > threshold, threshold, df[column])
+    elif method == 'remove':
+        df = df[df[column] <= threshold]
+    else:
+        raise ValueError("method must be either 'cap' or 'remove'")
+
+    return df
+
+
 def preprocess_data(df, row_thresh=0.4, col_thresh=0.4):
     """General pipeline to clean a DataFrame safely for ML models."""
     df = drop_high_nulls_and_strip_strings(df, row_thresh, col_thresh)
     df = fill_nans_df(df)
-    df = drop_unique_columns(df)
+    df = drop_unique_categorical_columns(df)
     df = clean_boolean_like_columns(df)
-    # df = convert_to_datetime_if_possible(df)
-    # df = convert_datetime_columns_to_epoch(df)
-    # df = convert_to_numeric_if_possible(df)
 
     if df.isnull().sum().sum() > 0:
         raise ValueError("Data still contains NaNs.")
+    
+    df = lowercase_and_get_dummies(df)
+    df = replace_invalid_vals(df)
+    df = convert_low_cardinality_to_category(df)
+    # df = remove_outliers(df, 'lines_of_code_written', 1000, method='remove')
+
+
     return df
 
 

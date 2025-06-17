@@ -79,9 +79,7 @@ def train_and_evaluate(models, X_train, y_train, X_test, y_test):
 
 
 def pipeline(data, label='productive_day', type='classification', threshold=None):
-    """General pipeline to streamline process from CSV or DataFrame to evaluation.
-    If the max accuracy < threshold, it also returns processed_df for further use.
-    """
+    """General pipeline to streamline process from CSV or DataFrame to evaluation."""
     if isinstance(data, str):
         df = load_data(data)  # CSV path
     elif isinstance(data, pd.DataFrame):
@@ -92,11 +90,7 @@ def pipeline(data, label='productive_day', type='classification', threshold=None
     processed = preprocess_data(df)
     X, y = split_features_labels(processed, label)
 
-    print(X, y)
-
     X_scaled = scale_features(X)
-
-    print(X_scaled, 'after scaled..')
 
     X_train, X_test, y_train, y_test = split_data(X_scaled, y)
 
@@ -106,19 +100,17 @@ def pipeline(data, label='productive_day', type='classification', threshold=None
             "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
             "XGBoost": XGBClassifier(eval_metric='logloss')
         }
-    elif type == 'regression':
+    else:
         models = {
             "Linear Regression": LinearRegression(), 
             "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42),
             "XGBoost": XGBRegressor()
         }
-    else:
-        raise ValueError("Unknown pipeline type. Please use 'classification' or 'regression'.")
     
 
     results = {"type": type}
 
-    max_accuracy = 0
+    max_accuracy = 0.0
 
     for name, model in models.items():
         model.fit(X_train, y_train)
@@ -143,12 +135,9 @@ def pipeline(data, label='productive_day', type='classification', threshold=None
                 "R2": r2,
             }
     
-    print(f"📊 Accuracy: {max_accuracy*100:.2f}%")
+    return results, processed, max_accuracy
 
-    if threshold is not None and max_accuracy < threshold:
-        return results, processed
-    
-    return results
+
 
 
 

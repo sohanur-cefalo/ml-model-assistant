@@ -5,7 +5,7 @@
 <h2>Configure Pipeline</h2>
 
 <form id="pipeline-form" method="POST" action="{{ url_for('run_pipeline') }}">
-    <input type="hidden" name="file" value="{{ file }}"/>
+    <input type="hidden" name="file" value="{{ file }}">  
 
     <div class="mb-3">
         <label for="label" class="form-label">Select Label Column</label>
@@ -24,7 +24,7 @@
 
     <div class="mb-3">
         <label for="threshold" class="form-label">Threshold (e.g. 0.8 for 80%)</label>
-        <input type="number" step="0.01" min="0" max="1" id="threshold" name="threshold" value="0.8" class="form-control" required />
+        <input type="number" step="0.01" min="0" max="1" id="threshold" name="threshold" value="0.8" class="form-control" required>
     </div>
 
     <button id="submitBtn" type="submit" class="btn btn-success">
@@ -53,7 +53,7 @@ function detectType() {
     })
     .then(response => response.json()) 
     .then(data => {
-        if(data.pipeline_type){
+        if (data.pipeline_type) {
             document.getElementById('type').value = data.pipeline_type;
         } else if (data.error) {
             alert(data.error);
