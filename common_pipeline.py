@@ -89,6 +89,21 @@ def pipeline(data, label='productive_day', type='classification', threshold=None
     
     processed = preprocess_data(df)
     X, y = split_features_labels(processed, label)
+    
+    if type == 'classification':
+        unique_classes = y.unique()
+        if len(unique_classes) != 2:
+            raise ValueError(f"Expected 2 classes for binary, but got {len(unique_classes)}.")
+        
+        # Sort to make the mapping deterministic
+        unique_classes_sorted = sorted(unique_classes)
+        mapping = {unique_classes_sorted[0]: 0, unique_classes_sorted[1]: 1}
+        
+        y = y.map(mapping)
+        if y.isnull().any():
+            raise ValueError("Some values were not mapped. Check your data.")
+    else:
+        y = y
 
     X_scaled = scale_features(X)
 
